@@ -1,0 +1,21 @@
+{
+  "title": "Deep Research Agent",
+  "description": "LangGraph-powered AI research agent with real-time streaming interface",
+  "port": 4242,
+  "host": "0.0.0.0",
+  "auth": false,
+  "langsmith": {
+    "project": "deep-research-agent"
+  },
+  "graphs": {
+    "research_workflow": "backend.workflow:ResearchGraph"
+  },
+  "dependencies": [
+    "langchain",
+    "langchain_google_genai",
+    "langchain_community",
+    "google-generativeai",
+    "fastapi",
+    "uvicorn"
+  ]
+}

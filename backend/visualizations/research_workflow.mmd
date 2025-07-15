@@ -1,0 +1,21 @@
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+graph TD;
+    START([__start__]):::first
+    GQ[generate_queries<br/>📝 Generate Search Queries]
+    WS[web_search<br/>🔍 Web Search<br/>Parallel Execution]
+    AR[aggregate_results<br/>📊 Aggregate Results]
+    RF[reflection<br/>🤔 Reflect on Results]
+    AG[answer_generation<br/>📋 Generate Answer]
+    END([__end__]):::last
+
+    START --> GQ
+    GQ --> WS
+    WS --> AR
+    AR --> RF
+    RF -->|sufficient| AG
+    RF -->|need more| GQ
+    AG --> END
+
+    classDef default fill:#f2f0ff,line-height:1.2
+    classDef first fill-opacity:0
+    classDef last fill:#bfb6fc

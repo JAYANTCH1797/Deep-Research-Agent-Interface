@@ -1,0 +1,19 @@
+Last when I checked the execution. 
+
+I found that streaming from our Graph wasnt happening properly on the frontend. 
+
+In my opinion, the current way of integrating our backend workflow with frontend needs some reflection. 
+We should take a look at this tutorial for better streaming and frontend integration  https://langchain-ai.github.io/langgraph/cloud/how-tos/use_stream_react/#installation
+
+
+To reiterated, the frontend has the following features
+1. Input text Topic
+2. Enter Duration, select Content Style, select call to action and opt for strong hook 
+
+the output is the graph exection showcased on the frontend 
+with the three core states
+- Generate initial scripts 
+- Analyse structure
+- Create final script 
+
+once the flow is executed., the output of each node from the workflow is rendered on the output
