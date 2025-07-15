@@ -7,7 +7,9 @@
     "dev": "vite",
     "start": "npm run dev",
     "build": "tsc && vite build",
+    "build:render": "tsc && vite build --config vite.config.render.ts",
     "preview": "vite preview",
+    "preview:render": "vite preview --config vite.config.render.ts",
     "setup": "npm install && echo 'Run: npm start to begin'",
     "backend:install": "pip install -r backend/requirements.txt",
     "backend:test": "cd backend && python -m main test",
@@ -82,10 +84,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0-alpha.31",
+    "@types/node": "^24.0.14",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "tailwindcss": "^4.0.0-alpha.31",
+    "terser": "^5.43.1",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"
   }
