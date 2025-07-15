@@ -15,9 +15,8 @@ services:
     name: research-agent-frontend
     env: node
     buildCommand: npm ci && npm run build
-    startCommand: npm run preview
+    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
     plan: free
-    staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
         fromService:
