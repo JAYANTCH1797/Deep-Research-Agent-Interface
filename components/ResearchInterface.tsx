@@ -422,14 +422,6 @@ Original Question: ${actualOutput.original_question || 'Not provided'}`;
     setIsRunning(false);
   };
 
-  const handleSSEError = (error: Event) => {
-    console.error('SSE Error:', error);
-    setError('Connection lost to research service');
-    setIsRunning(false);
-    
-    // Check if this is a connection error and fall back to demo mode
-    runDemoMode();
-  };
 
   const updateStepFromTimeline = (update: TimelineUpdate) => {
     const stepId = mapPhaseToStepId(update.phase);
@@ -486,26 +478,7 @@ Original Question: ${actualOutput.original_question || 'Not provided'}`;
     }));
   };
 
-  const handleTimelineUpdate = (update: TimelineUpdate) => {
-    console.log('Timeline update:', update);
-    updateStepFromTimeline(update);
-  };
 
-  const handleResearchComplete = (result: ResearchResult) => {
-    console.log('Research complete:', result);
-    
-    if (result.success) {
-      setFinalResult(result.final_answer);
-      setIsComplete(true);
-      setError(null);
-    } else {
-      setError(result.error || 'Research failed with unknown error');
-      setFinalResult(result.final_answer || 'Unable to complete research due to an error.');
-      setIsComplete(true);
-    }
-    
-    setIsRunning(false);
-  };
 
   const handleError = (errorMessage: string) => {
     console.error('Research error:', errorMessage);
@@ -574,7 +547,6 @@ Original Question: ${actualOutput.original_question || 'Not provided'}`;
             continue;
           } else if (line.startsWith('event: ')) {
             // Extract event type for next data line
-            const eventType = line.substring(7);
             continue;
           } else if (line.startsWith('data: ')) {
             // Parse the JSON data
@@ -866,7 +838,7 @@ This is a demonstration of the research interface. The backend server is not ava
                   No debug events captured yet. Start a research query to see SSE events.
                 </p>
               ) : (
-                debugEvents.map((event, index) => (
+                debugEvents.map((event, _index) => (
                   <div
                     key={event.id}
                     className="border rounded p-3 bg-background space-y-2"

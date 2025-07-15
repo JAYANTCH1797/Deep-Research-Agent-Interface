@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { SearchInterface } from './components/SearchInterface';
-import { ResearchInterface } from './components/ResearchInterface';
-import { ThemeProvider } from './components/ThemeProvider';
-import { BackendStatusProvider } from './components/BackendStatusProvider';
+import React, { useState } from 'react';
+import { SearchInterface } from '../components/SearchInterface';
+import { ResearchInterface } from '../components/ResearchInterface';
+import { ThemeProvider } from '../components/ThemeProvider';
+import { BackendStatusProvider } from '../components/BackendStatusProvider';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'search' | 'research'>('search');
