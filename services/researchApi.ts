@@ -35,23 +35,11 @@ class ResearchApiClient {
   private wsUrl: string;
 
   constructor(baseUrl?: string) {
-    // Use environment variable in production, fallback to localhost for development
-    let apiUrl = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL) || (globalThis as any).__VITE_API_URL__ || 'http://localhost:8000';
-    
-    // Handle relative URLs in production
-    if (baseUrl) {
-      apiUrl = baseUrl;
-    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-      // In production, try to construct the backend URL from the current location
-      // This assumes the backend is on the same domain but different subdomain
-      const currentHost = window.location.hostname;
-      if (currentHost.includes('research-agent-frontend')) {
-        apiUrl = `https://${currentHost.replace('research-agent-frontend', 'research-agent-backend')}`;
-      } else {
-        apiUrl = apiUrl || `${window.location.protocol}//${window.location.hostname}:8000`;
-      }
-    }
-    
+    // Always prefer the environment variable, then explicit baseUrl, then fallback to localhost
+    let apiUrl = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL)
+      || baseUrl
+      || 'http://localhost:8000';
+
     this.baseUrl = apiUrl;
     this.wsUrl = this.baseUrl.replace('http', 'ws');
   }
