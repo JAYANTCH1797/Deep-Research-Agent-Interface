@@ -25,7 +25,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 
@@ -45,10 +45,12 @@ class ResearchResult(BaseModel):
     error: Optional[str] = None
 
 @app.get("/")
+@app.head("/")
 async def root():
     return {"message": "Deep Research Agent API v2.0", "status": "healthy"}
 
 @app.get("/health")
+@app.head("/health")
 async def health_check():
     return {
         "status": "healthy",
@@ -59,6 +61,7 @@ async def health_check():
     }
 
 @app.get("/config")
+@app.head("/config")
 async def get_config():
     """Get current configuration status"""
     return {
@@ -458,6 +461,7 @@ async def run_thread(thread_id: str, payload: Dict[str, Any]):
 
 # Allow SSE streaming via GET for EventSource (reads question from query params)
 @app.get("/threads/{thread_id}/runs")
+@app.head("/threads/{thread_id}/runs")
 async def run_thread_get(thread_id: str, question: str):
     """
     SSE endpoint for streaming research via thread with GET supporting EventSource.
