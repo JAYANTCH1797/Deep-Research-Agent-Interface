@@ -13,7 +13,7 @@ import {
 } from './ui/resizable';
 import { TimelineUpdate, ResearchResult } from '../services/researchApi';
 // Backend base URL for creating threads and streaming runs
-const API_URL = "http://localhost:8000";
+const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8000";
 
 interface ResearchInterfaceProps {
   query: string;

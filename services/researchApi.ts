@@ -36,7 +36,7 @@ class ResearchApiClient {
 
   constructor(baseUrl?: string) {
     // Use environment variable in production, fallback to localhost for development
-    let apiUrl = (globalThis as any).__VITE_API_URL__ || 'http://localhost:8000';
+    let apiUrl = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL) || (globalThis as any).__VITE_API_URL__ || 'http://localhost:8000';
     
     // Handle relative URLs in production
     if (baseUrl) {

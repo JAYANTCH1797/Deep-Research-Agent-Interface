@@ -29,8 +29,8 @@ export interface ResearchResult {
 class ImprovedResearchApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl = 'http://localhost:8000') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    this.baseUrl = baseUrl || (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL) || 'http://localhost:8000';
   }
 
   async healthCheck(): Promise<boolean> {
