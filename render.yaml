@@ -19,7 +19,4 @@ services:
     plan: free
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: research-agent-backend  # This must match the backend service name
-          property: host 
+        value: https://research-agent-backend.onrender.com 

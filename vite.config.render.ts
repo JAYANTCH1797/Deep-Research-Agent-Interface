@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // Production configuration for Render.com deployment
 export default defineConfig({
   plugins: [react()],
-  // define block removed; VITE_API_URL is handled by Vite automatically
+  // NOTE: Do not hardcode API URLs here. Use VITE_API_URL from environment variables, set in render.yaml.
   resolve: {
     alias: {
       "@": "./src",
