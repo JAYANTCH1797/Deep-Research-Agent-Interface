@@ -13,7 +13,15 @@ import {
 } from './ui/resizable';
 import { TimelineUpdate, ResearchResult } from '../services/researchApi';
 // Backend base URL for creating threads and streaming runs
+// Best practice: Always use the backend URL from the environment variable for flexibility and security.
+// Never hardcode the backend URL for production. Only fallback to localhost for local development.
 const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8000";
+
+if ((!API_URL || API_URL === "http://localhost:8000") && window.location.hostname !== "localhost") {
+  throw new Error(
+    "VITE_API_URL is not set! Please configure your backend URL in the Render.com dashboard or render.yaml. See https://render.com/docs/infrastructure-as-code for details."
+  );
+}
 
 interface ResearchInterfaceProps {
   query: string;
