@@ -12,7 +12,7 @@ class ResearchAgentConfig:
     
     # AI Models
     query_generator_model: str = "gpt-4o-mini-search-preview-2025-03-11"                # For complex query generation
-    web_searcher_model: str = "gpt-4o-search-preview"    # For web search with browsing
+    web_searcher_model: str = "gpt-4o-mini-search-preview-2025-03-11"    # For web search with browsing
     reflection_model: str = "o4-mini"                     # For research reflection
     answer_model: str = "o4-mini"                        # For final answer generation
     
