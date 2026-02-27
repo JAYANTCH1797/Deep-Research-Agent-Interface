@@ -3,6 +3,7 @@ import sys
 import json
 import asyncio
 import time
+import pathlib
 from datetime import datetime
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -13,20 +14,23 @@ from typing import Dict, Any, Optional, AsyncIterator
 from uuid import uuid4
 
 # Add parent directory to path to ensure imports work correctly
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Load .env from backend directory before anything else
+from dotenv import load_dotenv as _load_dotenv
+_dotenv_path = pathlib.Path(__file__).parent / ".env"
+_load_dotenv(dotenv_path=_dotenv_path if _dotenv_path.exists() else None, override=False)
 
 from backend.workflow import ImprovedResearchWorkflow
 from backend.config import config
+from backend.nodes import get_llm, _content_to_str
 
 app = FastAPI(title="Deep Research Agent API", version="2.0.0")
 
-# CORS middleware
+# CORS middleware — origins driven by config (CORS_ORIGINS env var)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://research-agent-frontend-qa1n.onrender.com",
-        "http://localhost:5173"
-    ],
+    allow_origins=config.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,6 +43,11 @@ research_workflow = ImprovedResearchWorkflow()
 class ResearchRequest(BaseModel):
     question: str
     stream_mode: str = "values"  # "values" or "events"
+
+class EditRequest(BaseModel):
+    selected_text: str
+    full_document: str
+    instruction: str
 
 class ResearchResult(BaseModel):
     success: bool
@@ -69,7 +78,7 @@ async def get_config():
     """Get current configuration status"""
     return {
         "demo_mode": config.demo_mode,
-        "openai_api_key_configured": bool(config.openai_api_key.strip()),
+        "google_ai_api_key_configured": bool(config.google_ai_api_key.strip()),
         "config_valid": config.validate(),
         "models": {
             "query_generator": config.query_generator_model,
@@ -257,6 +266,93 @@ async def research_stream_endpoint(request: ResearchRequest):
             }
         )
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/edit")
+async def edit_endpoint(request: EditRequest):
+    """
+    Stream document edits using Gemini 2.0 Flash via Server-Sent Events
+    User provides: selected_text (context), full_document, instruction
+    Returns: SSE stream of the FULL revised document
+    """
+    try:
+        if not request.instruction.strip():
+            raise HTTPException(status_code=400, detail="Instruction cannot be empty")
+        if not request.full_document.strip():
+            raise HTTPException(status_code=400, detail="Document cannot be empty")
+
+        print(f"[DEBUG] Starting edit stream. Instruction: {request.instruction[:50]}...")
+
+        # Construct the prompt
+        prompt = f"""You are an expert editor. The user has selected a passage from a research document and given an instruction.
+Make only the changes required by the instruction — keep every other part of the document exactly as-is.
+The edit should be coherent with the rest of the document in structure, tone, and style.
+Return the complete document in markdown — no preamble, no commentary.
+
+SELECTED PASSAGE (what the user is referring to):
+{request.selected_text}
+
+FULL DOCUMENT:
+{request.full_document}
+
+INSTRUCTION: {request.instruction}"""
+
+        async def generate_edit_stream():
+            try:
+                # Use Gemini 2.0 Flash for speed
+                # backend/config.py usually sets gemini-3-flash-preview as the default, 
+                # but we can explicitly request a fast model if needed. 
+                # get_llm() defaults to config.query_generator_model
+                llm = get_llm() 
+                
+                event_counter = 0
+                accumulated_response = ""
+
+                # Stream the response from Gemini
+                async for chunk in llm.astream(prompt):
+                    content = _content_to_str(chunk.content)
+                    if content:
+                        accumulated_response += content
+                        # Send text chunk
+                        payload = {"type": "content", "content": content}
+                        yield (
+                            f"id: {event_counter}\n"
+                            f"event: content\n"
+                            f"data: {json.dumps(payload)}\n\n"
+                        ).encode("utf-8")
+                        event_counter += 1
+
+                # Send done event with full result
+                final_payload = {
+                    "type": "done",
+                    "full_document": accumulated_response
+                }
+                yield (
+                    f"id: {event_counter}\n"
+                    f"event: done\n"
+                    f"data: {json.dumps(final_payload)}\n\n"
+                ).encode("utf-8")
+
+            except Exception as e:
+                print(f"[DEBUG] Edit stream error: {e}")
+                error_payload = {"type": "error", "error": str(e)}
+                yield (
+                    f"id: {event_counter}\n"
+                    f"event: error\n"
+                    f"data: {json.dumps(error_payload)}\n\n"
+                ).encode("utf-8")
+
+        return StreamingResponse(
+            generate_edit_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Content-Type": "text/event-stream",
+            }
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

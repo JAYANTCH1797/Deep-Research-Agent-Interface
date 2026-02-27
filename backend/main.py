@@ -5,6 +5,7 @@ import os
 import sys
 from typing import Optional
 from dotenv import load_dotenv
+import pathlib
 
 # Add parent directory to path to ensure imports work correctly
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
@@ -27,8 +28,9 @@ except ImportError:
     from backend.config import config
     from backend.api import start_server
 
-# Load environment variables
-load_dotenv()
+# Load environment variables — try backend/.env first, then project root .env
+_env_path = pathlib.Path(__file__).parent / ".env"
+load_dotenv(dotenv_path=_env_path if _env_path.exists() else None, override=False)
 
 async def run_cli_research(question: str, verbose: bool = False):
     """Run research from command line interface"""
@@ -91,25 +93,17 @@ async def run_cli_research(question: str, verbose: bool = False):
 
 def validate_environment():
     """Validate required environment variables"""
-    required_vars = [
-        "GEMINI_API_KEY",
-        # We no longer need these since we're using Gemini's native search
-        # "GOOGLE_SEARCH_API_KEY", 
-        # "GOOGLE_SEARCH_ENGINE_ID"
-    ]
-    
-    missing_vars = []
-    for var in required_vars:
-        if not os.getenv(var):
-            missing_vars.append(var)
-    
+    required_vars = ["GOOGLE_AI_API_KEY"]
+
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+
     if missing_vars:
         print("❌ Missing required environment variables:")
         for var in missing_vars:
             print(f"  - {var}")
-        print("\nPlease set these variables in your .env file or environment.")
+        print("\nPlease set these variables in your backend/.env file.")
         return False
-    
+
     print("✅ All required environment variables are set.")
     return True
 
@@ -166,12 +160,17 @@ def main():
         # Check configuration
         print("🔧 Deep Research Agent Configuration")
         print("=" * 40)
-        
+
         print(f"Configuration Valid: {config.validate()}")
-        print(f"Gemini API Key: {'✅ Set' if config.google_api_key else '❌ Missing'}")
-        print(f"Google Search API Key: {'✅ Set' if config.google_search_api_key else '❌ Missing'}")
-        print(f"Google Search Engine ID: {'✅ Set' if config.google_search_engine_id else '❌ Missing'}")
-        
+        print(f"Google AI API Key: {'✅ Set' if config.google_ai_api_key else '❌ Missing'}")
+        print(f"Demo Mode: {config.demo_mode}")
+
+        print(f"\nModels:")
+        print(f"  Query Generator: {config.query_generator_model}")
+        print(f"  Web Searcher:    {config.web_searcher_model}")
+        print(f"  Reflection:      {config.reflection_model}")
+        print(f"  Answer:          {config.answer_model}")
+
         print(f"\nResearch Parameters:")
         print(f"  Initial Queries: {config.initial_queries_count}")
         print(f"  Max Research Loops: {config.max_research_loops}")

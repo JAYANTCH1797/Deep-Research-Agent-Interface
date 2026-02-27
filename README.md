@@ -1,299 +1,330 @@
-# Deep Research Agent
+<div align="center">
 
-A sophisticated **LangGraph-powered** AI research agent with real-time streaming interface that conducts comprehensive research on any topic using advanced language models and web search capabilities.
+# 🔬 Deep Research Agent
 
-## 🧠 LangGraph Architecture
+**An AI-powered research engine that thinks before it answers.**
 
-This application leverages **LangGraph** - a framework for building stateful, multi-actor applications with LLMs. The research workflow is implemented as a directed graph with the following nodes:
+Built on LangGraph's stateful graph architecture, this agent doesn't just search — it plans, searches in parallel, reflects on gaps, and loops until it has enough evidence to write a comprehensive, cited report. Results appear in a rich WYSIWYG document editor you can edit, refine, and ask the AI to rewrite inline.
 
-### Research Workflow Graph
-```mermaid
-graph TD
-    START([Start]) --> GQ[Generate Queries]
-    GQ --> WS[Web Search]
-    WS --> AR[Aggregate Results]
-    AR --> RF[Reflection]
-    RF -->|Sufficient| AG[Answer Generation]
-    RF -->|Need More| GQ
-    AG --> END([End])
+[![LangGraph](https://img.shields.io/badge/LangGraph-1.0-blue?style=flat-square&logo=python)](https://www.langchain.com/langgraph)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.133-green?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.2-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![TipTap](https://img.shields.io/badge/TipTap-WYSIWYG-purple?style=flat-square)](https://tiptap.dev/)
+
+</div>
+
+---
+
+## 📸 Screenshots
+
+### Live Research + WYSIWYG Canvas
+
+![Canvas Editor with Formatting Toolbar](./assets/canvas-screenshot.png)
+*Research results appear in TipTap's rich text editor — always formatted, always editable. The toolbar provides heading levels, bold/italic/underline, code blocks, equations, blockquotes, lists, undo/redo and more.*
+
+### Landing Page
+
+![Landing Page](./assets/landing-page.png)
+*Clean search interface — just ask a question.*
+
+---
+
+## 🧠 Reasoning Framework: LangGraph StateGraph
+
+The core of this project is a **stateful directed graph** built with [LangGraph](https://www.langchain.com/langgraph) that implements the **Reflexion / Self-Critique** reasoning framework — a pattern where the model generates an initial output, reflects on its own gaps and mistakes, and iteratively improves it before delivering a final answer.
+
+### The Research Graph
+
+```
+START
+  │
+  ▼
+┌─────────────────────┐
+│   Generate Queries   │  ← gpt-4o-mini-search-preview
+│  Break the question  │    Plans 2–4 targeted search queries
+│  into sub-topics     │    with explicit rationale
+└──────────┬──────────┘
+           │  (Send API — fan out in parallel)
+           ▼
+┌─────────────────────┐
+│     Web Search       │  ← gpt-4o-search-preview (×N parallel)
+│  Real-time browsing  │    Live internet access per query
+│  per search query    │    Source credibility evaluation
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Aggregate Results   │
+│  Deduplicate, merge  │
+│  rank by relevance   │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│     Reflection       │  ← o4-mini
+│  "Do I know enough?" │    Identifies knowledge gaps
+│  Evaluates coverage  │    Decides: answer or loop?
+└──────────┬──────────┘
+           │
+    ┌──────┴────────────────────────┐
+    │ Sufficient?                   │ Need more?
+    ▼                               ▼
+┌──────────────────┐       Back to Generate Queries
+│ Answer Generation │  ← o4-mini       (max 2 loops)
+│ Synthesize report │
+│ with citations    │
+└────────┬─────────┘
+         │
+        END
 ```
 
-### LangGraph Features Used
-- **StateGraph**: Manages research state across workflow steps
-- **Parallel Execution**: Concurrent web searches using `Send` for optimal performance
-- **Conditional Routing**: Dynamic decision-making based on research completeness
-- **Native Streaming**: Real-time progress updates via `astream_events()`
-- **State Management**: Comprehensive state tracking with `TypedDict` annotations
-- **Error Handling**: Robust error handling and recovery mechanisms
+### Why This Matters
+
+Most RAG pipelines retrieve once and answer immediately. This agent uses a **Reflect → Loop** pattern:
+
+| Approach | Retrieve | Reflect | Loop |
+|---|---|---|---|
+| Naive RAG | ✅ | ❌ | ❌ |
+| This Agent | ✅ | ✅ | ✅ (up to 2×) |
+
+The `reflection` node — powered by `o4-mini` — acts as the agent's inner monologue. It reads all gathered sources, identifies what's still missing or uncertain, and either generates follow-up queries (sending the graph back to `generate_queries`) or declares the research sufficient and moves to answer synthesis.
+
+### Reasoning Pattern: Reflexion / Self-Critique
+
+> **Reflexion** is an agentic framework where the model generates an initial output, evaluates it against a goal, reflects on its own shortcomings, and refines — repeating until the output is deemed sufficient.
+>
+> `Draft → Evaluate → Reflect → Refine`
+
+This agent maps that cycle directly onto LangGraph nodes:
+
+| Reflexion Stage | LangGraph Node | Model |
+|---|---|---|
+| **Draft** | `generate_queries` + `web_search` | gpt-4o-search-preview |
+| **Evaluate** | `aggregate_results` | — |
+| **Reflect** | `reflection` — *"Do I know enough?"* | o4-mini |
+| **Refine** | Loop → `generate_queries` (up to 2×) | — |
+| **Final Output** | `answer_generation` | o4-mini |
+
+Most RAG pipelines retrieve once and answer immediately. Here, the `reflection` node — powered by `o4-mini` — acts as the agent's inner monologue: it reads all gathered sources, identifies knowledge gaps, and either triggers another research loop or declares the evidence sufficient and proceeds to answer synthesis.
+
+| Approach | Retrieve | Reflect | Self-Critique Loop |
+|---|---|---|---|
+| Naive RAG | ✅ | ❌ | ❌ |
+| **This Agent** | ✅ | ✅ | ✅ **(up to 2×)** |
+
+### LangGraph Primitives Used
+
+| Primitive | Purpose |
+|---|---|
+| `StateGraph` | Shared `OverallState` TypedDict passed and mutated between nodes |
+| `Send` API | Fan-out: execute N web searches **in parallel** across query list |
+| Conditional edges | `reflection` node dynamically routes — loop or proceed to answer |
+| `astream_events()` | Node-level streaming → SSE → real-time frontend timeline |
+
+---
+
+## 🏗️ System Architecture
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                        Browser (React + TS)                │
+│                                                            │
+│   ┌──────────────────┐          ┌───────────────────────┐  │
+│   │   Chat Panel     │          │    Canvas Panel        │  │
+│   │  (Activity feed) │          │  (TipTap WYSIWYG)      │  │
+│   │  Step timeline   │          │  Formatting Toolbar    │  │
+│   │  AI chat bubbles │          │  AI inline edit (SSE)  │  │
+│   └────────┬─────────┘          └──────────┬────────────┘  │
+│            │ SSE / fetch                   │                │
+└────────────┼───────────────────────────────┼───────────────┘
+             │                               │
+             ▼                               ▼
+┌────────────────────────────────────────────────────────────┐
+│                   FastAPI Backend (Python)                  │
+│                                                            │
+│   POST /research/stream   →   LangGraph StateGraph         │
+│   POST /edit              →   GPT-4o inline document edit  │
+│   GET  /health            →   Status check                 │
+│                                                            │
+│   LangGraph astream_events() → SSE frames → Frontend       │
+└────────────────────────────────────────────────────────────┘
+```
+
+### Real-Time Streaming Pipeline
+
+The backend uses LangGraph's **native `astream_events()`** to stream fine-grained events as the graph executes. Each node emits structured SSE frames that the frontend maps to timeline steps:
+
+```
+LangGraph node executes
+        │
+   astream_events()
+        │
+   on_chain_start  →  { type: "node_start",    nodeId: "generate_queries" }
+   on_chain_end    →  { type: "node_complete",  nodeId: "generate_queries", duration: 4857 }
+   on_chain_stream →  { type: "node_stream",    ... }
+        │
+   FastAPI SSE endpoint  ──→  Server-Sent Events  ──→  React EventSource
+        │
+   Timeline UI updates in real-time
+```
+
+---
+
+## ✨ Key Features
+
+### Research Engine
+- **Iterative Research Loops** — Reflects on completeness and searches again if needed (up to 2 loops)
+- **Parallel Web Search** — Multiple queries execute concurrently via LangGraph `Send`
+- **Specialized Models** — Different OpenAI models per task (mini for speed, o4 for reasoning)
+- **Automatic Citations** — Every claim is sourced and formatted in the final report
+- **Real-time Progress** — Watch every step of the graph execute as it happens
+
+### WYSIWYG Document Editor
+- **Always Rich** — No "Preview / Edit" toggle; formatting is always visible
+- **Live Markdown Shortcuts** — Type `# ` → H1, `**text**` → bold, `> ` → blockquote
+- **Formatting Toolbar** — H1–H3, Bold, Italic, Underline, Inline Code, Code Block, Equation (∑), Blockquote, Bullet List, Ordered List, Horizontal Rule, Undo/Redo
+- **AI Inline Edit** — Select any text → floating toolbar → type an instruction → AI rewrites that section
+
+### Interface
+- **Resizable Panels** — Drag the divider between chat and canvas
+- **Dark / Light Mode** — System preference detection + manual toggle
+- **Debug Mode** — Inspect raw LangGraph event payloads in real-time
+- **LangSmith Tracing** — Full observability of every graph execution
+
+---
+
+## 🤖 Model Allocation
+
+| Task | Model | Why |
+|---|---|---|
+| Query Generation | `gpt-4o-mini-search-preview` | Fast reasoning for search strategy |
+| Web Search | `gpt-4o-search-preview` | Real-time internet access |
+| Reflection | `o4-mini` | Deep analytical reasoning for gap identification |
+| Answer Synthesis | `o4-mini` | Thorough synthesis + citation formatting |
+| Inline Document Edit | `gpt-4o` | Precision surgical edits to selected text |
+
+---
+
+## 🛠️ Tech Stack
+
+**Backend**
+- Python · FastAPI · LangGraph · LangChain · LangSmith
+- OpenAI API (GPT-4o, o4-mini, search-preview variants)
+- Uvicorn · Server-Sent Events (SSE) · WebSocket
+
+**Frontend**
+- React 18 · TypeScript · Vite
+- TipTap (ProseMirror-based WYSIWYG editor)
+- `react-resizable-panels` · shadcn/ui · Lucide icons
+
+**Infrastructure**
+- Docker · Docker Compose
+- Railway · Render · Vercel compatible
+- Nginx (production frontend serving)
+
+---
 
 ## 🚀 Quick Start
 
 ```bash
-# Install and start everything
+# 1. Clone
+git clone <your-repo-url>
+cd Deep-Research-Agent-Interface
+
+# 2. Set up environment variables
+cp .env.example .env
+# Add your OPENAI_API_KEY to .env
+
+# 3. Install frontend dependencies
 npm install
-npm start
+
+# 4. Set up Python backend
+python3 -m venv venv
+./venv/bin/pip install -r backend/requirements.txt
+
+# 5. Start both servers
+npm start                      # Frontend → http://localhost:5173
+cd backend && ../venv/bin/python -m uvicorn api:app --reload --port 8000
 ```
 
-The application will automatically:
-1. Install frontend dependencies (React + TypeScript)
-2. Install backend dependencies (Python + LangGraph)
-3. Start the backend server (FastAPI on port 8000)
-4. Start the frontend server (Vite on port 5173)
-5. Open your browser to http://localhost:5173
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
 
-## 🖥️ Frontend Capabilities
+### Environment Variables
 
-### Core Interface Features
-- **Modern React + TypeScript**: Built with Vite for fast development
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Real-time Research Interface**: Watch AI research unfold in real-time
-- **Interactive Timeline**: Track progress through each research phase
-- **Resizable Panels**: Customizable layout with draggable panel dividers
-
-### Advanced UI Components
-- **shadcn/ui Component Library**: Professional, accessible UI components
-- **Dark/Light Mode**: Theme switching with system preference detection
-- **Search Interface**: Clean, intuitive search input with suggestions
-- **Results Panel**: Markdown-rendered research results with syntax highlighting
-- **Activity Timeline**: Step-by-step progress visualization
-- **Error Handling**: Graceful fallbacks and user-friendly error messages
-
-### Theme System
-- **Persistent Theme Settings**: Remembers user preference across sessions
-- **System Theme Detection**: Automatically matches OS dark/light mode
-- **Smooth Transitions**: Animated theme switching
-- **Accessible Design**: High contrast ratios and keyboard navigation
-
-## 📡 Event Streaming Capabilities
-
-### Real-time Progress Updates
-The frontend uses **Server-Sent Events (SSE)** to provide real-time updates during research:
-
-```typescript
-// SSE connection for real-time updates
-const response = await fetch('/research/stream', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ 
-    question: query, 
-    stream_mode: 'events'  // Triggers LangGraph astream_events
-  })
-});
+```bash
+OPENAI_API_KEY=sk-...          # Required
+LANGSMITH_TRACING=true         # Optional — enables LangSmith tracing
+LANGSMITH_API_KEY=...          # Optional
+LANGSMITH_PROJECT=deep-research-agent
 ```
 
-### Streaming Event Types
-- **`node_start`**: When a research phase begins
-- **`node_complete`**: When a research phase completes
-- **`node_stream`**: Real-time progress within a phase
-- **`complete`**: Final research results available
-- **`error`**: Error handling with detailed messages
+### Research Parameters (configurable in `backend/config.py`)
 
-### Debug Mode
-- **Live Event Monitoring**: View raw SSE events in real-time
-- **Debug Panel**: Inspect LangGraph event payloads
-- **Performance Metrics**: Track node execution times
-- **Error Diagnostics**: Detailed error information for troubleshooting
-
-### Connection Management
-- **Automatic Fallback**: Switches to demo mode if backend unavailable
-- **Connection Status**: Visual indicators for backend connectivity
-- **Retry Logic**: Automatic reconnection attempts
-- **Graceful Degradation**: Functional demo mode for development
-
-## 🤖 LLM Models & Task Distribution
-
-The application uses **multiple specialized LLM models** optimized for different research tasks:
-
-### Model Configuration
 ```python
-# Query Generation - Complex reasoning for search strategy
-query_generator_model: "gpt-4o-mini-search-preview-2025-03-11"
-
-# Web Search - Enhanced search capabilities with web browsing
-web_searcher_model: "gpt-4o-search-preview"
-
-# Reflection - Analysis and completeness evaluation
-reflection_model: "o4-mini"
-
-# Answer Generation - Comprehensive synthesis
-answer_model: "o4-mini"
+initial_queries_count = 3      # How many search queries to generate
+max_research_loops    = 2      # Max reflection → re-search cycles
+max_sources_per_query = 10     # Sources retained per web search
+min_sources_for_sufficiency = 5  # Threshold to skip extra loops
 ```
-
-### Task-Specific Model Usage
-
-#### 1. Query Generation (`gpt-4o-mini-search-preview`)
-- **Purpose**: Breaks down complex questions into targeted search queries
-- **Capabilities**: Advanced reasoning, query optimization, search strategy
-- **Input**: User's original question
-- **Output**: 2-4 focused search queries with rationale
-
-#### 2. Web Search (`gpt-4o-search-preview`)
-- **Purpose**: Executes web searches with real-time browsing capabilities
-- **Capabilities**: Live web access, source evaluation, content extraction
-- **Input**: Individual search queries
-- **Output**: Comprehensive search results with sources
-
-#### 3. Reflection (`o4-mini`)
-- **Purpose**: Evaluates research completeness and identifies gaps
-- **Capabilities**: Content analysis, gap identification, decision-making
-- **Input**: Aggregated search results
-- **Output**: Sufficiency assessment and follow-up queries
-
-#### 4. Answer Generation (`o4-mini`)
-- **Purpose**: Synthesizes final comprehensive answers
-- **Capabilities**: Information synthesis, citation formatting, markdown generation
-- **Input**: All research findings and sources
-- **Output**: Well-structured answer with proper citations
-
-### Model Performance Optimization
-- **Parallel Processing**: Multiple web searches execute concurrently
-- **Temperature Control**: Optimized settings for each model type
-- **Context Management**: Efficient token usage across research phases
-- **Error Handling**: Fallback strategies for model failures
-
-## 🔧 Research Workflow Phases
-
-### Phase 1: Query Generation
-- Analyzes user question for key concepts
-- Generates 2-4 targeted search queries
-- Provides rationale for search strategy
-- Optimizes for comprehensive coverage
-
-### Phase 2: Web Search (Parallel)
-- Executes multiple searches concurrently
-- Uses OpenAI's web search capabilities
-- Extracts relevant information and sources
-- Evaluates source credibility
-
-### Phase 3: Result Aggregation
-- Combines search results from all queries
-- Removes duplicates and conflicts
-- Organizes information by relevance
-- Prepares data for analysis
-
-### Phase 4: Reflection & Analysis
-- Evaluates research completeness
-- Identifies information gaps
-- Determines if additional research needed
-- Generates follow-up queries if necessary
-
-### Phase 5: Answer Generation
-- Synthesizes comprehensive final answer
-- Formats with proper citations
-- Structures information logically
-- Provides markdown formatting
-
-## 🛠️ Development & Configuration
-
-### Environment Setup
-```bash
-# Frontend development
-npm run dev:frontend
-
-# Backend development
-npm run dev:backend
-
-# LangGraph development UI
-npm run langgraph:dev
-```
-
-### Configuration Options
-```python
-# Research parameters
-initial_queries_count: 3          # Number of initial search queries
-max_research_loops: 2             # Maximum research iterations
-max_sources_per_query: 10         # Sources per search query
-min_sources_for_sufficiency: 5    # Minimum sources for completion
-```
-
-### API Endpoints
-- **POST `/research/stream`**: Real-time research with SSE
-- **WS `/research/ws`**: WebSocket alternative for streaming
-- **GET `/health`**: Backend health check
-- **GET `/docs`**: Interactive API documentation
-
-## 📊 Monitoring & Observability
-
-### LangSmith Integration
-```bash
-# Environment variables for tracing
-LANGSMITH_TRACING=true
-LANGSMITH_PROJECT="deep-research-agent"
-LANGSMITH_API_KEY="your-api-key"
-```
-
-### Performance Metrics
-- **Research Duration**: Total time per research session
-- **Model Usage**: Token consumption per model
-- **Success Rate**: Completion rate and error tracking
-- **Source Quality**: Citation accuracy and relevance
-
-### Debug Features
-- **Step-by-step Logging**: Detailed execution traces
-- **State Inspection**: Real-time state monitoring
-- **Error Diagnostics**: Comprehensive error reporting
-- **Performance Profiling**: Execution time analysis
-
-## 🚀 Deployment Options
-
-### Local Development
-```bash
-npm start                    # Full stack development
-npm run dev:frontend        # Frontend only
-npm run dev:backend         # Backend only
-```
-
-### Docker Deployment
-```bash
-docker-compose up -d        # Production deployment
-docker-compose logs -f      # View logs
-```
-
-### Cloud Deployment
-- **Railway**: Automatic deployment from GitHub
-- **Render**: Multi-service deployment
-- **Vercel**: Frontend deployment
-- **DigitalOcean**: Full-stack VPS deployment
-
-## 🔍 Advanced Features
-
-### Research Loops
-- **Iterative Research**: Continues until sufficient information gathered
-- **Gap Analysis**: Identifies missing information automatically
-- **Quality Thresholds**: Configurable sufficiency criteria
-- **Loop Limits**: Prevents infinite research cycles
-
-### Citation System
-- **Automatic Citations**: Proper source attribution
-- **URL Validation**: Verifies source accessibility
-- **Citation Formatting**: Consistent citation style
-- **Source Ranking**: Prioritizes authoritative sources
-
-### Error Recovery
-- **Graceful Degradation**: Continues research despite partial failures
-- **Retry Logic**: Automatic retry for transient errors
-- **Fallback Modes**: Demo mode when backend unavailable
-- **User Feedback**: Clear error messages and recovery options
-
-## 📚 Documentation
-
-- **API Documentation**: http://localhost:8000/docs (when running)
-- **Setup Guide**: [SETUP.md](SETUP.md)
-- **Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
-- **LangGraph Improvements**: [LANGGRAPH_IMPROVEMENTS.md](LANGGRAPH_IMPROVEMENTS.md)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with LangGraph** - The next generation of AI application development
+## 📁 Project Structure
+
+```
+├── backend/
+│   ├── api.py           # FastAPI app, SSE & WebSocket endpoints
+│   ├── workflow.py      # LangGraph StateGraph definition
+│   ├── nodes.py         # Individual graph node implementations
+│   ├── state.py         # OverallState TypedDict
+│   ├── streaming.py     # SSE streaming utilities
+│   ├── prompts.py       # System prompts per model/node
+│   └── config.py        # Research parameters
+│
+├── components/
+│   ├── ResearchInterface.tsx   # Root: manages SSE, state, chat
+│   ├── CanvasPanel.tsx         # Canvas with WYSIWYG editor
+│   ├── RichTextEditor.tsx      # TipTap editor + bidirectional markdown
+│   ├── EditorToolbar.tsx       # Formatting toolbar
+│   ├── SelectionToolbar.tsx    # AI inline edit toolbar (on text select)
+│   ├── ChatPanel.tsx           # Left-side agent chat feed
+│   └── ActivityTimeline.tsx    # Research step progress cards
+│
+├── utils/
+│   ├── markdownToHtml.ts       # Markdown → HTML for TipTap initial load
+│   └── htmlToMarkdown.ts       # ProseMirror JSON → Markdown for AI APIs
+│
+└── services/
+    └── researchApi.ts          # API client abstractions
+```
+
+---
+
+## 🔭 How It Compares
+
+| | Perplexity | ChatGPT Search | This Agent |
+|---|---|---|---|
+| Iterative research loops | ❌ | ❌ | ✅ |
+| Parallel web searches | ❌ | ❌ | ✅ |
+| Explicit reflection step | ❌ | ❌ | ✅ |
+| Editable live document | ❌ | ❌ | ✅ |
+| AI inline edit | ❌ | ❌ | ✅ |
+| Real-time step visibility | ❌ | ❌ | ✅ |
+| Open source / self-hosted | ❌ | ❌ | ✅ |
+
+---
+
+## 📄 License
+
+MIT — free to use, modify, and deploy.
+
+---
+
+<div align="center">
+  <sub>Built with LangGraph · FastAPI · React · TipTap</sub>
+</div>

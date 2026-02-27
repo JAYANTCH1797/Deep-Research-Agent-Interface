@@ -41,6 +41,39 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ── Chat+Canvas UI surface tokens (light) ── */
+  --ri-page-bg: #f4f4f5;
+  --ri-header-bg: #ffffff;
+  --ri-header-border: rgba(0, 0, 0, 0.1);
+  --ri-header-text: #111111;
+  --ri-header-sub: #6b7280;
+  --ri-chat-bg: rgba(249, 249, 251, 0.95);
+  --ri-chat-border: rgba(0, 0, 0, 0.08);
+  --ri-chat-header-bg: rgba(255, 255, 255, 0.97);
+  --ri-bubble-agent-bg: rgba(240, 240, 243, 0.9);
+  --ri-bubble-agent-border: rgba(0, 0, 0, 0.07);
+  --ri-bubble-agent-text: #111111;
+  --ri-bubble-user-bg: #1a1a1a;
+  --ri-bubble-user-text: #ffffff;
+  --ri-input-bg: #ffffff;
+  --ri-input-border: rgba(0, 0, 0, 0.15);
+  --ri-input-text: #111111;
+  --ri-subtext: #9ca3af;
+  --ri-divider: rgba(0, 0, 0, 0.08);
+  --ri-canvas-bg: #f9f9fb;
+  --ri-canvas-text: #111111;
+  --ri-canvas-sub: #555555;
+  --ri-canvas-code-bg: #f0f0f3;
+  --ri-step-card-bg: #ffffff;
+  --ri-step-card-border: rgba(0, 0, 0, 0.08);
+  --ri-step-connector: rgba(0, 0, 0, 0.12);
+  --ri-step-pending-bg: #f4f4f5;
+  --ri-step-pending-border: #d1d5db;
+  --ri-step-title: #111111;
+  --ri-step-subtext: #6b7280;
+  --ri-typing-bubble-bg: rgba(240, 240, 243, 0.85);
+  --ri-typing-bubble-border: rgba(0, 0, 0, 0.06);
 }
 
 .dark {
@@ -79,6 +112,39 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+
+  /* ── Chat+Canvas UI surface tokens (dark) ── */
+  --ri-page-bg: #0A0A0A;
+  --ri-header-bg: #0A0A0A;
+  --ri-header-border: #262626;
+  --ri-header-text: #ffffff;
+  --ri-header-sub: #A1A1A1;
+  --ri-chat-bg: rgba(23, 23, 23, 0.5);
+  --ri-chat-border: #262626;
+  --ri-chat-header-bg: rgba(23, 23, 23, 0.8);
+  --ri-bubble-agent-bg: rgba(23, 23, 23, 0.5);
+  --ri-bubble-agent-border: rgba(38, 38, 38, 0.2);
+  --ri-bubble-agent-text: #D4D4D4;
+  --ri-bubble-user-bg: #262626;
+  --ri-bubble-user-text: #ffffff;
+  --ri-input-bg: #0A0A0A;
+  --ri-input-border: #272727;
+  --ri-input-text: #ffffff;
+  --ri-subtext: #737373;
+  --ri-divider: #262626;
+  --ri-canvas-bg: #0A0A0A;
+  --ri-canvas-text: #D4D4D4;
+  --ri-canvas-sub: #A1A1A1;
+  --ri-canvas-code-bg: #171717;
+  --ri-step-card-bg: #171717;
+  --ri-step-card-border: rgba(38, 38, 38, 0.6);
+  --ri-step-connector: #262626;
+  --ri-step-pending-bg: #171717;
+  --ri-step-pending-border: #404040;
+  --ri-step-title: #ffffff;
+  --ri-step-subtext: #A1A1A1;
+  --ri-typing-bubble-bg: rgba(23, 23, 23, 0.5);
+  --ri-typing-bubble-border: rgba(38, 38, 38, 0.2);
 }
 
 @theme inline {

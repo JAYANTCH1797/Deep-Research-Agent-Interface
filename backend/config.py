@@ -1,49 +1,54 @@
 import os
-import json
-from typing import Literal, Optional
-from dataclasses import dataclass
+from typing import Literal
+from dataclasses import dataclass, field
+from typing import List
 
 @dataclass
 class ResearchAgentConfig:
-    """Configuration for the Research Agent"""
-    
-    # Mode selection
-    demo_mode: bool = os.getenv("DEMO_MODE", "true").lower() == "true"
-    
-    # AI Models
-    query_generator_model: str = "gpt-4o-mini-search-preview-2025-03-11"                # For complex query generation
-    web_searcher_model: str = "gpt-4o-mini-search-preview-2025-03-11"    # For web search with browsing
-    reflection_model: str = "o4-mini"                     # For research reflection
-    answer_model: str = "o4-mini"                        # For final answer generation
-    
-    # Research Parameters
+    """Configuration for the Research Agent (Google Gemini backend)"""
+
+    # Mode selection — false by default so real research runs without manual override
+    demo_mode: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+    # ── Google AI / Gemini models ────────────────────────────────────────────
+    # gemini-2.0-flash is fast and capable; use gemini-1.5-pro for higher quality
+    query_generator_model: str = "gemini-3-flash-preview"  # Query generation
+    web_searcher_model: str = "gemini-3-flash-preview"     # Web search analysis
+    reflection_model: str = "gemini-3-flash-preview"       # Reflection / gap analysis
+    answer_model: str = "gemini-3-flash-preview"           # Final answer synthesis
+
+    # ── Research Parameters ──────────────────────────────────────────────────
     initial_queries_count: int = 3
     max_research_loops: int = 2
     max_sources_per_query: int = 10
-    
-    # Performance Settings
+
+    # ── Performance Settings ─────────────────────────────────────────────────
     search_timeout_seconds: int = 30
     parallel_search_limit: int = 5
-    
-    # Quality Thresholds
+
+    # ── Quality Thresholds ───────────────────────────────────────────────────
     min_sources_for_sufficiency: int = 5
     content_relevance_threshold: float = 0.7
-    
-    # API Configuration
-    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
-    
+
+    # ── API Configuration ────────────────────────────────────────────────────
+    google_ai_api_key: str = os.getenv("GOOGLE_AI_API_KEY", "")
+
+    # ── CORS origins (comma-separated list via env var) ──────────────────────
+    cors_origins: List[str] = field(default_factory=lambda: [
+        o.strip()
+        for o in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:5173,http://localhost:3000"
+        ).split(",")
+        if o.strip()
+    ])
+
     def validate(self) -> bool:
         """Validate that required API keys are present or demo mode is enabled"""
-        # If demo mode is enabled, no API keys are required
         if self.demo_mode:
             return True
-            
-        # Require an OpenAI API key when not in demo mode
-        if self.openai_api_key.strip():
-            return True
-            
-        # No valid API keys found
-        return False
+        return bool(self.google_ai_api_key.strip())
+
 
 # Global config instance
 config = ResearchAgentConfig()
